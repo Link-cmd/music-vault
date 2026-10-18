@@ -1,0 +1,66 @@
+Music Vault Free Use / Reserved Sale License, version 1.0
+
+Copyright (c) 2026 Music Vault project owner, GitHub account Link-cmd
+(display name Sodatchi). All rights reserved except as expressly granted below.
+
+1. Scope
+
+"Owner" means the copyright holder identified above. "Covered Software" means
+the Owner's Music Vault application code, original artwork, and documentation,
+and modifications of that material to the extent covered by the Owner's rights.
+It excludes third-party components, their source code, and music or other content
+that users import. This license grants rights only to the extent the Owner is
+entitled to grant them.
+
+2. Free use
+
+You may download, install, run, and make backup copies of the Covered Software
+without paying a license fee, for personal, educational, nonprofit, or internal
+business use. You may inspect its source code and modify it for your own use.
+You may distribute unmodified or modified copies without charge, provided you
+include this license and all applicable notices, identify your modifications,
+and do not imply that the Owner endorses your version.
+
+3. Sale and paid distribution reserved to the Owner
+
+Without a separate written commercial license from the Owner, you may not sell,
+resell, rent, lease, or license the Covered Software or a modified version for a
+fee or other compensation. You may not charge for downloading or accessing a
+copy, distribute it as part of a paid software bundle, or remove these
+restrictions by changing its name, packaging, or license. You may not grant
+others commercial distribution rights you have not received from the Owner.
+
+The Owner retains the right to sell the Covered Software and to grant separate
+commercial licenses. Running the software inside a business, or using it while
+performing paid work, is permitted under section 2 and is not a sale of it.
+
+4. Notices and third-party rights
+
+Keep this license and the Owner's copyright notices with every copy of the
+Covered Software. Do not misrepresent its origin or claim ownership of the
+Owner's material. No trademark rights are granted.
+
+Third-party components retain their own licenses. In particular, NAudio is
+licensed under the Microsoft Public License, and the bundled FFmpeg build is
+licensed under GPL version 3 or later. Nothing in this license restricts rights
+granted by those licenses, including rights to use, modify, redistribute, or sell
+those components independently. You must comply with their licenses whenever
+you distribute them. See THIRD-PARTY.md and the included dependency licenses.
+
+5. Termination
+
+The permissions granted by this license terminate if you violate its conditions.
+Rights under independent third-party licenses are governed by those licenses.
+
+6. Disclaimer
+
+THE COVERED SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW,
+THE OWNER AND CONTRIBUTORS ARE NOT LIABLE FOR CLAIMS, DAMAGES, OR OTHER LIABILITY
+ARISING FROM THE COVERED SOFTWARE OR ITS USE, WHETHER IN CONTRACT, TORT, OR
+OTHERWISE. THIS LICENSE DOES NOT LIMIT RIGHTS THAT APPLICABLE LAW DOES NOT ALLOW
+TO BE LIMITED.
+
+For commercial distribution permission, contact the owner through
+https://github.com/Link-cmd/music-vault .
