@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -53,18 +53,16 @@ partial class Player {
   seek.PreviewMouseLeftButtonUp+=(s,e)=>{if(player.NaturalDuration.HasTimeSpan)player.Position=TimeSpan.FromSeconds(seek.Value);dragging=false;};
   seek.LostMouseCapture+=(s,e)=>{if(dragging && player.NaturalDuration.HasTimeSpan)player.Position=TimeSpan.FromSeconds(seek.Value);dragging=false;};
   seek.ValueChanged+=(s,e)=>{if(!changingSeek && !dragging && player.NaturalDuration.HasTimeSpan)player.Position=TimeSpan.FromSeconds(seek.Value);};
-  volume.ValueChanged+=(s,e)=>{player.Volume=volume.Value;Find<TextBlock>("VolumeText").Text=((int)(volume.Value*100)).ToString("00");};player.Volume=.4;
-  player.MediaOpened+=(s,e)=>{if(player.NaturalDuration.HasTimeSpan){seek.Maximum=player.NaturalDuration.TimeSpan.TotalSeconds;seek.IsEnabled=true;}info.Text="STEREO / "+current.Format+" / AUTO LEVEL";};
-  player.MediaEnded+=(s,e)=>{if(repeat.IsChecked==true){player.Position=TimeSpan.Zero;player.Play();}else Next(1);};
-  player.MediaFailed+=(s,e)=>{playing=false;play.Content="▶ PLAY";info.Text="Unable to play this track. Select another.";};
+  volume.ValueChanged+=(s,e)=>{player.Volume=volume.Value;Find<TextBlock>("VolumeText").Text=((int)(volume.Value*100)).ToString("00");};player.Volume=.2;
   var timer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(50)};
   timer.Tick+=(s,e)=>{
    orbit.Animate(playing && !mini && WindowState!=WindowState.Minimized);miniOrbit.Progress=orbit.Progress;miniOrbit.Animate(playing && mini && WindowState!=WindowState.Minimized);
-   play.Content=playing?"Ⅱ PAUSE":"▶ PLAY";deckState.Text=loading?"◌ PREPARING":playing?"● PLAYING":current==null?"● STANDBY":"Ⅱ PAUSED";
+   play.Content=(playing || loading && wantsPlay)?"Ⅱ PAUSE":"▶ PLAY";deckState.Text=loading?"◌ PREPARING":playing?"● PLAYING":current==null?"● STANDBY":"Ⅱ PAUSED";
    if(current!=null){trackNumber.Text=current.Number+" / "+songs.Count.ToString("000");if(player.NaturalDuration.HasTimeSpan){changingSeek=true;if(!dragging)seek.Value=player.Position.TotalSeconds;changingSeek=false;clock.Text=Time(player.Position)+" / "+Time(player.NaturalDuration.TimeSpan);orbit.Progress=player.Position.TotalSeconds/Math.Max(1,player.NaturalDuration.TimeSpan.TotalSeconds);}}
   };timer.Start();
-  Closed+=(s,e)=>{version++;if(preparation!=null)preparation.Cancel();timer.Stop();player.Close();try{Directory.Delete(cache,true);}catch{}};
+  Closed+=(s,e)=>{timer.Stop();ClosePlayback();};
   PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Space && !(Keyboard.FocusedElement is TextBox) && !(Keyboard.FocusedElement is Button) && !(Keyboard.FocusedElement is CheckBox)){Toggle(null,null);e.Handled=true;}if(e.Key==Key.F && Keyboard.Modifiers==ModifierKeys.Control){search.Focus();search.SelectAll();e.Handled=true;}};
+  shuffle.Checked+=(s,e)=>ScheduleNext();shuffle.Unchecked+=(s,e)=>ScheduleNext();repeat.Unchecked+=(s,e)=>ScheduleNext();
   SetupModes();SetupDelete();Filter();
  }
  void Filter() {
@@ -74,7 +72,7 @@ partial class Player {
   hint.Visibility=search.Text.Length==0?Visibility.Visible:Visibility.Collapsed;empty.Visibility=visible.Count==0?Visibility.Visible:Visibility.Collapsed;
   empty.Text=songs.Count==0?"YOUR COLLECTION STARTS HERE.\n\nClick + ADD SONGS to load your music.":"NO SIGNAL FOUND.\nTry another search.";
   if(songs.Count==0){title.Text="A fresh start.";info.Text="ADD YOUR FIRST TRACK TO BEGIN.";}
-  if(current!=null)list.SelectedItem=current;
+  if(current!=null){list.SelectedItem=current;if(mediaReady)ScheduleNext();}
  }
 }
 class OrbitDisplay : FrameworkElement {

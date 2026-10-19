@@ -31,3 +31,8 @@ mini-day.png
 mini-night.png
 mini-playing.png
 rename-dialog.png
+
+playback-tests/
+perceived-tests/
+verify-library.txt
+verify-empty.txt

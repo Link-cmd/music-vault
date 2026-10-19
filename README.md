@@ -1,4 +1,4 @@
-# Music Vault
+﻿# Music Vault
 
 A compact retro music player for 64-bit Windows. Your collection lives inside the player executable, including songs added later.
 
@@ -39,9 +39,9 @@ Adding, renaming, and deleting need write access to the player's folder and enou
 
 ## Volume balancing
 
-Playback prepares a temporary normalized WAV before starting, so opening a track can take a few seconds and needs temporary disk space. Original embedded audio remains unchanged. The default volume is 40%.
+Playback prepares a temporary normalized WAV before starting, so opening a track can take a few seconds and needs temporary disk space. Original embedded audio remains unchanged. The default volume is 20%.
 
-The processor uses a gated -26 dBFS RMS target, up to +12 dB gain, moving-window control for louder passages, and a -12 dBFS sample-peak ceiling. This is not LUFS/true-peak normalization or a hearing-protection guarantee. Actual listening volume also depends on Windows and your audio equipment. Very quiet or damaged recordings can remain quiet or fail to decode.
+The processor measures complete-track perceived loudness with FFmpeg loudnorm in two passes, aiming for -30 LUFS after an additional quiet output stage. Stereo-linked compression controls louder passages, net upward gain is capped at +6 dB, and a final look-ahead limiter caps sample peaks at approximately -18 dBFS with automatic make-up gain disabled. Highly dynamic or extremely quiet recordings can remain below the target. These signal limits are not a hearing-protection guarantee. Actual listening volume also depends on Windows and your audio equipment. Very quiet or damaged recordings can remain quiet or fail to decode.
 
 ## Developer commands
 
@@ -62,7 +62,7 @@ python .\test-leveling.py
 python .\test-delete.py
 ```
 
-The first test creates synthetic inputs and checks loud/quiet matching, bursts, peaks, silence, stereo balance, and duration. The second checks Unicode renaming, blank-name rejection, checksums, deletion, reclaimed space, removing the final track, and adding afterward. Run them in the order shown.
+The first test creates synthetic inputs and independently measures perceived loudness and true peaks across loud, quiet, bass-heavy, bright, silent, and burst-heavy signals. It also checks boost limits, silence, and duration. The second checks Unicode renaming, blank-name rejection, checksums, deletion, reclaimed space, removing the final track, and adding afterward. Run them in the order shown.
 
 ## Dependencies and distribution
 
@@ -71,3 +71,9 @@ See [THIRD-PARTY.md](THIRD-PARTY.md), [NAudio-LICENSE.txt](NAudio-LICENSE.txt), 
 ## Application license
 
 Music Vault uses the [Free Use / Reserved Sale License](LICENSE.txt). You may use it for free, including internally at work, inspect and modify the source, and share copies for free with the notices intact. Selling, renting, paid bundling, or paid redistribution of the application requires written permission from the owner, GitHub account Link-cmd. This is a source-available license, not an open-source license. Third-party components retain their own licenses and rights, as described in [THIRD-PARTY.md](THIRD-PARTY.md).
+
+## Playback preparation
+
+Tracks are balanced before playback; an uncached song may take several seconds. Play/Pause also works during preparation. Up to three recent prepared tracks are kept in a temporary session cache, and the next track is prepared in the background. The cache is removed when the player closes. Original embedded songs are unchanged.
+
+For the playback regression check, pack three synthetic WAV tracks of at least 25 seconds each, then run `Test.exe --playback-test <existing-output-folder>`. This tests real Windows playback, rapid switching, preparation pause/resume, cache reuse, repeat, and automatic next.

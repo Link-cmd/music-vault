@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -116,6 +116,7 @@ static partial class Vault {
    var app=new Application(); var window=new Player();
    if(args.Length>0 && args[0]=="--smoke") window.Loaded+=(s,e)=>window.Smoke(args[1],args.Length>2?args[2]:null);
    if(args.Length>0 && args[0]=="--modes") window.Loaded+=(s,e)=>window.TestModes(args[1]);
+   if(args.Length>0 && args[0]=="--playback-test") window.Loaded+=(s,e)=>window.TestPlayback(args[1]);
    app.Run(window); return 0;
   } catch(Exception ex) {if(args.Length>0) {File.WriteAllText(Path.Combine(Path.GetDirectoryName(Self),"vault-error.txt"),ex.ToString());} else MessageBox.Show(ex.Message,"Music Vault"); return 1;}
  }
@@ -125,7 +126,7 @@ partial class Player : Window {
  TextBlock title=new TextBlock(), info=new TextBlock(), clock=new TextBlock(), count=new TextBlock(); Button play=new Button();
  Slider seek=new Slider(); CheckBox shuffle=new CheckBox(), repeat=new CheckBox(); Song current; bool playing,dragging; int version; Random random=new Random();
  string cache=Path.Combine(Path.GetTempPath(),"MusicVault-"+Guid.NewGuid().ToString("N")); string extracted;
- System.Threading.CancellationTokenSource preparation; bool loading;
+ bool loading;
  static readonly System.Threading.SemaphoreSlim processing=new System.Threading.SemaphoreSlim(1,1);
  SolidColorBrush muted=new SolidColorBrush(Color.FromRgb(158,170,192));
  public Player() { InitializeRetro(); }
@@ -141,9 +142,8 @@ partial class Player : Window {
     File.WriteAllText(Path.Combine(folder,"empty-smoke.txt"),"PASS: zero tracks, icon loaded, empty-state rendering, search, and empty transport controls.");Close();return;
    }
    player.Volume=0;
-   search.Text="Yonaka"; if(visible.Count==0)throw new Exception("Search failed");search.Text="";
-   var opened=new TaskCompletionSource<bool>();player.MediaOpened+=(s,e)=>opened.TrySetResult(true);player.MediaFailed+=(s,e)=>opened.TrySetException(new Exception("Playback failed"));
-   Start(requestedSong==null?visible[0]:visible.First(x=>x.Name.IndexOf(requestedSong,StringComparison.OrdinalIgnoreCase)>=0));if(await Task.WhenAny(opened.Task,Task.Delay(30000))!=opened.Task)throw new Exception("Playback timed out");await opened.Task;
+   search.Text=songs[0].Name; if(visible.Count==0)throw new Exception("Search failed");search.Text="";
+   Start(requestedSong==null?visible[0]:visible.First(x=>x.Name.IndexOf(requestedSong,StringComparison.OrdinalIgnoreCase)>=0));await WaitReady();
    await Task.Delay(700);if(player.Position.TotalSeconds<=0)throw new Exception("Playback did not advance");
    Toggle(null,null);if(playing)throw new Exception("Pause failed");seek.Value=15;Toggle(null,null);await Task.Delay(500);if(player.Position.TotalSeconds<14)throw new Exception("Seek failed");
    volume.Value=.3;if(Math.Abs(player.Volume-.3)>.01)throw new Exception("Volume failed");volume.Value=0;
@@ -161,20 +161,6 @@ partial class Player : Window {
   }catch(Exception ex){File.WriteAllText(Path.Combine(folder,"smoke.txt"),"FAIL: "+ex);}
   Close();
  }
- async void Start(Song song) {
-  if(preparation!=null)preparation.Cancel();preparation=new System.Threading.CancellationTokenSource();var cancel=preparation.Token;
-  int token=++version;player.Close();playing=false;loading=true;seek.IsEnabled=false;current=song;list.SelectedItem=song;list.ScrollIntoView(song);title.Text=song.Name;title.ToolTip=song.Name;info.Text="Balancing volume…";
-  string path=Path.Combine(cache,Guid.NewGuid().ToString("N")+song.Extension);
-  string balanced=path+".wav";
-  try {
-   await Task.Run(()=>{processing.Wait(cancel);try{cancel.ThrowIfCancellationRequested();using(var output=File.Create(path))if(Vault.CopySong(Vault.Self,song,output)!=song.Hash)throw new InvalidDataException("Song integrity check failed.");AutoLevel.Prepare(path,balanced,cancel);}finally{processing.Release();try{File.Delete(path);}catch{}}});
-   if(token!=version){try{File.Delete(balanced);}catch{}return;}
-   if(extracted!=null)try{File.Delete(extracted);}catch{} extracted=balanced;player.Open(new Uri(balanced));player.Play();playing=true;play.Content="Ⅱ PAUSE";
-  } catch(OperationCanceledException) {} catch(Exception ex) {if(token==version)info.Text="Unable to balance this song: "+ex.Message;}
-  finally{if(token==version)loading=false;if(cancel.IsCancellationRequested){try{File.Delete(balanced);Directory.Delete(cache,false);}catch{}}}
- }
- void Toggle(object sender,RoutedEventArgs e) {if(loading)return;if(current==null){if(visible.Count>0)Start(list.SelectedItem as Song ?? visible[0]);return;}if(playing){player.Pause();playing=false;play.Content="▶ PLAY";info.Text="Paused";}else if(extracted!=null){player.Play();playing=true;play.Content="Ⅱ PAUSE";info.Text="STEREO / AUTO LEVEL";}else Start(current);}
- void Next(int direction) {var queue=visible.Count>0?visible:songs;if(queue.Count==0)return;int i=queue.IndexOf(current);int next=i<0?(direction>0?0:queue.Count-1):(i+direction+queue.Count)%queue.Count;if(shuffle.IsChecked==true && queue.Count>1){do{next=random.Next(queue.Count);}while(next==i);}Start(queue[next]);}
  void Add(object sender,RoutedEventArgs e) {
   var dialog=new OpenFileDialog {Title="Add songs inside Music Vault",Multiselect=true,Filter="Audio files|*.mp3;*.wav;*.m4a;*.wma;*.aac"};if(dialog.ShowDialog()!=true)return;
   try {

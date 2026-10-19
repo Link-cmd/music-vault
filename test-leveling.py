@@ -1,35 +1,46 @@
-import array, math, pathlib, subprocess, wave
+import array,json,math,pathlib,re,subprocess,wave
 root=pathlib.Path(__file__).resolve().parent
 folder=root/'leveling-tests';folder.mkdir(exist_ok=True)
 exe=root/'MusicVault-base.exe'
-def make(name, amplitude, spike=False, silence=False, burst=False):
-    path=folder/(name+'.wav');values=array.array('h')
-    for i in range(48000*3):
-        x=0 if silence else amplitude*math.sin(2*math.pi*440*i/48000)
-        if burst and 48000<=i<62400:x=.95*math.sin(2*math.pi*440*i/48000)
-        if spike and i==48000:x=.99
-        values.extend([round(x*32767),round(x*.5*32767)])
-    with wave.open(str(path),'wb') as f:f.setparams((2,2,48000,0,'NONE',''));f.writeframes(values.tobytes())
-    output=folder/(name+'-balanced.wav')
-    subprocess.run([str(exe),'--level',str(path),str(output)],check=True)
-    with wave.open(str(output),'rb') as f:
-        assert f.getnframes()==48000*3
-        data=array.array('h',f.readframes(f.getnframes()))
-    rms=math.sqrt(sum((x/32768)**2 for x in data)/len(data))
-    peak=max(abs(x) for x in data)/32768
-    assert peak<=.2501,(name,peak)
-    if burst:
-        section=data[48000*2:62400*2]
-        burst_rms=math.sqrt(sum((x/32768)**2 for x in section)/len(section))
-        assert burst_rms<.075,burst_rms
-    assert max(abs(data[i]*.5-data[i+1]) for i in range(0,len(data),2))<=6, 'Stereo balance changed'
-    return rms,peak
-loud=make('loud',.9);quiet=make('quiet',.04);spike=make('spike',.04,True);silence=make('silence',0,silence=True)
-assert abs(20*math.log10(loud[0]/quiet[0]))<.2,(loud,quiet)
-assert silence==(0,0),silence
-assert .24<spike[1]<=.2501,spike
-assert loud[0]<.051,loud
-make('quiet-with-loud-burst',.02,burst=True)
-report=f'PASS: loud/quiet difference {abs(20*math.log10(loud[0]/quiet[0])):.3f} dB; peak {spike[1]:.4f} <= 0.25; loud passages controlled; silence stays silent; stereo balance and duration preserved.\n'
-(folder/'results.txt').write_text(report)
-print(report)
+decoder=root/'.deps/decoder-package/imageio_ffmpeg/binaries/ffmpeg-win-x86_64-v7.1.exe'
+rate=48000
+def run(args):
+    result=subprocess.run([str(x) for x in args],capture_output=True,text=True)
+    assert result.returncode==0,result.stderr[-1500:]
+    return result.stderr
+def measure(path,start=None,duration=None):
+    args=[decoder,'-hide_banner','-nostats']
+    if start is not None:args+=['-ss',str(start)]
+    args+=['-i',path]
+    if duration is not None:args+=['-t',str(duration)]
+    log=run(args+['-af','loudnorm=print_format=json','-f','null','-'])
+    return {k:float(v) for k,v in json.loads(log[log.rfind('{'):log.rfind('}')+1]).items() if k.startswith('input_')}
+def create(name,amp=.2,freq=1000,intro=False,burst=False):
+    source=folder/(name+'.wav');out=folder/(name+'-balanced.wav');values=array.array('h')
+    for i in range(rate*12):
+        t=i/rate;amplitude=0 if intro and t<4 else amp
+        if burst and 4<=t<6:amplitude=.8
+        sample=round(amplitude*math.sin(2*math.pi*freq*t)*32767)
+        values.extend((sample,sample))
+    with wave.open(str(source),'wb') as f:f.setparams((2,2,rate,0,'NONE',''));f.writeframes(values.tobytes())
+    run([exe,'--level',source,out])
+    before=measure(source);after=measure(out)
+    with wave.open(str(out),'rb') as f:
+        assert abs(f.getnframes()/f.getframerate()-12)<.025,'Duration changed'
+        samples=array.array('h',f.readframes(f.getnframes()))
+    peak=max(abs(x) for x in samples)/32768
+    assert peak<=.1251,(name,peak)
+    assert after['input_tp']<=-17.7,(name,after)
+    assert after['input_i']<=-29.0,(name,after)
+    if math.isfinite(before['input_i']):assert after['input_i']-before['input_i']<=6.5,(name,before,after)
+    if amp==0:assert peak==0,'Silence was amplified'
+    print(f'{name}: {before["input_i"]} -> {after["input_i"]} LUFS, {after["input_tp"]} dBTP',flush=True)
+    return after
+results={}
+for name,args in [('loud',{'amp':.8}),('quiet',{'amp':.02}),('bass',{'freq':80}),('bright',{'freq':4000}),('intro',{'amp':.1,'intro':True}),('burst',{'amp':.025,'burst':True}),('silence',{'amp':0}),('very-quiet',{'amp':.0001})]:results[name]=create(name,**args)
+assert abs(results['loud']['input_i']-results['quiet']['input_i'])<.6,'Loud/quiet mismatch'
+assert abs(results['bass']['input_i']-results['bright']['input_i'])<.8,'Frequency weighting mismatch'
+burst=measure(folder/'burst-balanced.wav',4.2,1.4)
+assert burst['input_i']<=-23,'Loud burst not controlled'
+(folder/'results.json').write_text(json.dumps(results,indent=2))
+print('PASS: perceptual matching, quieter target, true/sample peaks, boost cap, loud passage, silence, and duration.')

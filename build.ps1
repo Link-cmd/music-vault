@@ -16,7 +16,7 @@ $resources = @(
     "/resource:$PSScriptRoot\Retro.xaml,Retro.xaml",
     "/resource:$PSScriptRoot\Mini.xaml,Mini.xaml"
 )
-$sources = @('AutoLevel.cs','Player.cs','Retro.cs','Modes.cs','Delete.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+$sources = @('AutoLevel.cs','Playback.cs','Player.cs','Retro.cs','Modes.cs','Delete.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
 & $compiler /nologo /target:winexe /platform:x64 /optimize+ "/out:$PSScriptRoot\MusicVault-base.exe" "/win32icon:$PSScriptRoot\vault.ico" "/reference:$naudio" @resources @references @sources
 if ($LASTEXITCODE -ne 0) { throw 'Compilation failed.' }
 Write-Host 'Built MusicVault-base.exe: an empty player, ready for Add songs.'
