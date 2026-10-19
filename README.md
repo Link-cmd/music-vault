@@ -1,6 +1,6 @@
 ﻿# Music Vault
 
-A compact retro music player for 64-bit Windows. Your collection lives inside the player executable, including songs added later.
+A compact retro music player for 64-bit Windows. Your collection lives inside the player executable.
 
 ## Features
 
